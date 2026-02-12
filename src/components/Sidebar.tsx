@@ -16,6 +16,7 @@ const adminLinks = [
     { href: "/dashboard/calendar", label: "Kalender", icon: "📅" },
     { href: "/dashboard/holidays", label: "Ferien", icon: "🏖️" },
     { href: "/dashboard/export", label: "Datenexport", icon: "📦" },
+    { href: "/dashboard/profile", label: "Mein Profil", icon: "👤" },
 ];
 
 const managerLinks = [
@@ -28,6 +29,7 @@ const managerLinks = [
     { href: "/dashboard/calendar", label: "Kalender", icon: "📅" },
     { href: "/dashboard/holidays", label: "Ferien", icon: "🏖️" },
     { href: "/dashboard/export", label: "Datenexport", icon: "📦" },
+    { href: "/dashboard/profile", label: "Mein Profil", icon: "👤" },
 ];
 
 const teacherLinks = [
@@ -35,6 +37,7 @@ const teacherLinks = [
     { href: "/dashboard/my-sessions", label: "Meine Gruppen", icon: "📋" },
     { href: "/dashboard/entries", label: "Meine Einträge", icon: "✏️" },
     { href: "/dashboard/calendar", label: "Kalender", icon: "📅" },
+    { href: "/dashboard/profile", label: "Mein Profil", icon: "👤" },
 ];
 
 export default function Sidebar() {
