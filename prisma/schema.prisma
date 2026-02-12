@@ -1,0 +1,294 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SITE_MANAGER
+  TEACHER
+}
+
+enum ContactType {
+  GUARDIAN_PHONE
+  GUARDIAN_EMAIL
+  STUDENT_PHONE
+  STUDENT_EMAIL
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String // Hashed
+  name     String
+  role     Role   @default(TEACHER)
+
+  // Teacher-specific fields
+  teacherNote       String?   // e.g. "nur Unterstufe", "nur in Notfällen"
+  teachableSubjects Subject[] // Fächer die die Lehrkraft unterrichten kann
+
+  // Relations
+  sites Site[] // Many-to-many: Users can work at multiple sites
+
+  // As Teacher
+  entries          Entry[]
+  assignedSessions Session[] @relation("SessionTeacher")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Site {
+  id      String  @id @default(uuid())
+  name    String  @unique
+  address String?
+
+  // Holiday set assignment
+  holidaySetId String?
+  holidaySet   HolidaySet? @relation(fields: [holidaySetId], references: [id])
+
+  users    User[]
+  students Student[]
+  sessions Session[]
+  rooms    Room[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Room {
+  id   String @id @default(uuid())
+  name String // e.g. "Raum 1", "Großer Saal"
+
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([siteId, name])
+}
+
+model Student {
+  id        String    @id @default(uuid())
+  firstName String
+  lastName  String
+  birthDate DateTime?
+  note      String? // General note about student
+
+  // Guardian / Erziehungsberechtigter
+  guardianName String?
+
+  // School info
+  school     String? // e.g. "BG/BRG Musterstadt"
+  gradeLevel String? // e.g. "5. Klasse" or "9. Schulstufe"
+
+  sites Site[] // Student available at multiple sites
+
+  // Contact details (phone numbers, emails with type info)
+  contacts StudentContact[]
+
+  sessions         Session[] // Specific daily assignments
+  entries          Entry[]
+  exams            Exam[]
+  grades           Grade[]
+  reportCardGrades ReportCardGrade[]
+  files            File[]   @relation("StudentFiles")
+
+  archived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Flexible contact info: multiple phones/emails with type labels
+model StudentContact {
+  id    String      @id @default(uuid())
+  type  ContactType
+  value String // The actual phone number or email
+  label String? // e.g. "Mutter", "Vater", "Schüler privat"
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Subject {
+  id    String  @id @default(uuid())
+  name  String  @unique
+  color String? // UI color for tags
+
+  teachers         User[]    // Lehrkräfte die dieses Fach unterrichten können
+  sessions         Session[] // Many-to-many
+  entries          Entry[]
+  exams            Exam[]
+  grades           Grade[]
+  reportCardGrades ReportCardGrade[]
+}
+
+// Zeugnisnoten — one per student per subject per school year/semester
+model ReportCardGrade {
+  id         String @id @default(uuid())
+  value      Int // 1-5
+  schoolYear String // e.g. "2025/26"
+  semester   Int    @default(1) // 1 = first semester, 2 = second (Jahreszeugnis)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, subjectId, schoolYear, semester])
+}
+
+// Represents a scheduled teaching slot/group for a day
+model Session {
+  id   String   @id @default(uuid())
+  date DateTime // The specific date of the session
+
+  // Time scheduling
+  startTime String  @default("14:30") // e.g. "14:30"
+  duration  Int     @default(90) // Duration in minutes
+
+  // Recurring / weekly scheduling
+  recurring        Boolean @default(false)
+  dayOfWeek        Int? // 0=Monday, 1=Tuesday ... 6=Sunday (ISO, Monday-based)
+  recurringGroupId String? // Links recurring instances together
+
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id])
+
+  teacherId String?
+  teacher   User?   @relation("SessionTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  // Many-to-many: session can cover multiple subjects
+  subjects Subject[]
+
+  // Room assignment (optional)
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id])
+
+  students Student[] // Which students are in this group/session
+
+  // "Post-It" from Site Manager to Teacher
+  managerNote String?
+
+  // Status tracking
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// The actual "Karteikarte" or Log entry
+model Entry {
+  id         String   @id @default(uuid())
+  date       DateTime @default(now()) // Log creation time
+  lessonDate DateTime // The date of the actual lesson
+
+  topic    String? // Was thematisiert wurde
+  notes    String? // Anmerkungen (Public/Shared)
+  homework String? // Hausübung
+
+  teacherId String?
+  teacher   User?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+
+  files File[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Grade {
+  id    String   @id @default(uuid())
+  value Int // 1-5
+  date  DateTime @default(now())
+  type  String? // "Schularbeit", "Test", "Mitarbeit", "Hausübung"
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  date        DateTime
+  description String?
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model File {
+  id   String  @id @default(uuid())
+  url  String
+  name String
+  type String?
+  size Int?
+
+  entryId String?
+  entry   Entry?  @relation(fields: [entryId], references: [id])
+
+  // Direct student attachment (not tied to an entry)
+  studentId String?
+  student   Student? @relation("StudentFiles", fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// Feriensets (e.g. "Wien", "Niederösterreich", "Custom")
+model HolidaySet {
+  id   String @id @default(uuid())
+  name String @unique // e.g. "Wien", "Niederösterreich"
+
+  holidays Holiday[]
+  sites    Site[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Individual holiday periods within a set
+model Holiday {
+  id        String   @id @default(uuid())
+  name      String   // e.g. "Weihnachtsferien", "Semesterferien"
+  startDate DateTime
+  endDate   DateTime
+  schoolYear String  // e.g. "2025/26"
+
+  holidaySetId String
+  holidaySet   HolidaySet @relation(fields: [holidaySetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
