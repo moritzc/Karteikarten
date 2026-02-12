@@ -10,7 +10,7 @@ async function main() {
     // Create Admin
     const admin = await prisma.user.upsert({
         where: { email: 'admin@karteikarten.local' },
-        update: {},
+        update: { password: adminPassword },
         create: {
             email: 'admin@karteikarten.local',
             name: 'Super Admin',
@@ -36,7 +36,7 @@ async function main() {
     // Create Site Manager
     const manager = await prisma.user.upsert({
         where: { email: 'manager@karteikarten.local' },
-        update: {},
+        update: { password: hashedPassword },
         create: {
             email: 'manager@karteikarten.local',
             name: 'Max Manager',
@@ -53,7 +53,7 @@ async function main() {
     // Create Teacher
     const teacher = await prisma.user.upsert({
         where: { email: 'teacher@karteikarten.local' },
-        update: {},
+        update: { password: hashedPassword },
         create: {
             email: 'teacher@karteikarten.local',
             name: 'Tanja Teacher',
