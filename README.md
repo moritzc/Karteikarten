@@ -15,6 +15,11 @@ Die folgenden Tools müssen auf dem System installiert sein:
    docker-compose up --build
    ```
 
+   **Wichtig:** Nach dem ersten Start (oder wenn Sie die Datenbank zurücksetzen möchten) müssen Sie die Standard-Daten manuell einspielen (Seeding):
+   ```bash
+   docker exec karteikarten-web-1 npx prisma db seed
+   ```
+
 2. Öffnen Sie die Anwendung im Browser:
    http://localhost:3000
 

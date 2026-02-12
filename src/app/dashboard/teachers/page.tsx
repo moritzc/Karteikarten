@@ -80,6 +80,7 @@ export default function TeachersPage() {
                 teacherNote: editForm.teacherNote,
                 subjectIds: editForm.subjectIds,
                 siteIds: editForm.siteIds,
+                password: editForm.password,
             }),
         });
         setSaving(false);
@@ -116,6 +117,7 @@ export default function TeachersPage() {
             teacherNote: selectedTeacher.teacherNote || "",
             subjectIds: selectedTeacher.teachableSubjects?.map((s: any) => s.id) || [],
             siteIds: selectedTeacher.sites?.map((s: any) => s.id) || [],
+            password: "",
         });
     };
 
@@ -181,6 +183,10 @@ export default function TeachersPage() {
                             </div>
                         </div>
                         <div className="form-group mb-4">
+                            <label className="form-label">Neues Passwort (leer lassen = unverändert)</label>
+                            <input className="input" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="••••••••" />
+                        </div>
+                        <div className="form-group mb-4">
                             <label className="form-label">Notiz zur Lehrkraft</label>
                             <textarea className="textarea" value={editForm.teacherNote} onChange={(e) => setEditForm({ ...editForm, teacherNote: e.target.value })} placeholder="z.B. kann nur Unterstufe; nur in Notfällen aufrufen..." />
                         </div>
@@ -211,27 +217,30 @@ export default function TeachersPage() {
                             <button className="btn btn-secondary" onClick={() => setEditForm(null)}>Abbrechen</button>
                         </div>
                     </div>
-                )}
+                )
+                }
 
                 {/* Info overview */}
-                {!editForm && (
-                    <div className="grid grid-2 mb-6">
-                        <div className="card">
-                            <h3 className="font-semibold mb-3">📋 Fächer</h3>
-                            {selectedTeacher.teachableSubjects?.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedTeacher.teachableSubjects.map((s: any) => <span key={s.id} className="badge badge-primary">{s.name}</span>)}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">Keine Fächer zugewiesen</p>
-                            )}
+                {
+                    !editForm && (
+                        <div className="grid grid-2 mb-6">
+                            <div className="card">
+                                <h3 className="font-semibold mb-3">📋 Fächer</h3>
+                                {selectedTeacher.teachableSubjects?.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedTeacher.teachableSubjects.map((s: any) => <span key={s.id} className="badge badge-primary">{s.name}</span>)}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Keine Fächer zugewiesen</p>
+                                )}
+                            </div>
+                            <div className="card">
+                                <h3 className="font-semibold mb-3">📝 Notiz</h3>
+                                <p className="text-sm" style={{ whiteSpace: "pre-wrap" }}>{selectedTeacher.teacherNote || <span className="text-muted-foreground">Keine Notiz hinterlegt</span>}</p>
+                            </div>
                         </div>
-                        <div className="card">
-                            <h3 className="font-semibold mb-3">📝 Notiz</h3>
-                            <p className="text-sm" style={{ whiteSpace: "pre-wrap" }}>{selectedTeacher.teacherNote || <span className="text-muted-foreground">Keine Notiz hinterlegt</span>}</p>
-                        </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* Monthly overview */}
                 <div className="card mb-6">
@@ -308,7 +317,7 @@ export default function TeachersPage() {
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
         );
     }
 
