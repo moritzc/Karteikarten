@@ -210,7 +210,7 @@ export default function UsersPage() {
                                 type="password"
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                placeholder={editUser ? "••••••••" : "Passwort eingeben"}
+                                placeholder={editUser ? "Passwort ändern (optional)" : "Passwort eingeben"}
                             />
                         </div>
                         <div className="form-group mb-4">

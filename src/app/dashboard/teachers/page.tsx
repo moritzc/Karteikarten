@@ -184,7 +184,7 @@ export default function TeachersPage() {
                         </div>
                         <div className="form-group mb-4">
                             <label className="form-label">Neues Passwort (leer lassen = unverändert)</label>
-                            <input className="input" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="••••••••" />
+                            <input className="input" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Passwort ändern (optional)" />
                         </div>
                         <div className="form-group mb-4">
                             <label className="form-label">Notiz zur Lehrkraft</label>

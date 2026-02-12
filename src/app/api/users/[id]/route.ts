@@ -27,7 +27,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const data: any = {};
     if (body.name) data.name = body.name;
     if (body.email) data.email = body.email;
-    if (body.password) data.password = await bcrypt.hash(body.password, 10);
+    if (body.password) {
+        console.log(`Updating password for user ${params.id}`);
+        data.password = await bcrypt.hash(body.password, 10);
+    }
     if (body.role && currentUser.role === "ADMIN") data.role = body.role;
     if (body.siteIds) data.sites = { set: body.siteIds.map((id: string) => ({ id })) };
     if (body.teacherNote !== undefined) data.teacherNote = body.teacherNote;
