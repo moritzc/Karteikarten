@@ -1,4 +1,5 @@
-# !! 99% Vibe Coded !!
+# !! 99% Vibe-Coded !!
+Dieses Projekt wurde fast ausschließlich mit LLM Tools erstellt! Eine öffentlich zugägnliche Instanz ist in aktueller Ausführung **NICHT** ratsam!
 
 # Schülerkarteikarten System
 
