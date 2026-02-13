@@ -1,3 +1,5 @@
+# !! 99% Vibe Coded !!
+
 # Schülerkarteikarten System
 
 ## Voraussetzungen
