@@ -74,8 +74,11 @@ export async function POST(req: Request) {
         }
 
         if (!siteId) {
-            const student = await prisma.student.findUnique({ where: { id: studentId }, select: { siteId: true } });
-            if (student) siteId = student.siteId;
+            const student = await prisma.student.findUnique({
+                where: { id: studentId },
+                include: { sites: true }
+            });
+            if (student && student.sites.length > 0) siteId = student.sites[0].id;
         }
 
         const note = await prisma.teacherNote.create({
