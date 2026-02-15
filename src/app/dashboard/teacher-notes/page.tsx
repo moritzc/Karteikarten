@@ -8,20 +8,20 @@ export default function TeacherNotesPage() {
     const [notes, setNotes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [range, setRange] = useState("30"); // days
+    const [view, setView] = useState<"inbox" | "archive">("inbox");
 
     useEffect(() => {
         loadNotes();
-    }, [range]);
+    }, [range, view]);
 
     const loadNotes = async () => {
         setLoading(true);
-        // Calculate date from range
         const d = new Date();
         d.setDate(d.getDate() - parseInt(range));
         const dateStr = d.toISOString().slice(0, 10);
 
-        // Fetch all notes (done and not done) from date
-        const res = await fetch(`/api/teacher-notes?from=${dateStr}`);
+        const isDone = view === "archive";
+        const res = await fetch(`/api/teacher-notes?from=${dateStr}&isDone=${isDone}`);
         const data = await res.json();
         setNotes(Array.isArray(data) ? data : []);
         setLoading(false);
@@ -34,7 +34,7 @@ export default function TeacherNotesPage() {
             body: JSON.stringify({ isDone: !currentStatus }),
         });
         if (res.ok) {
-            setNotes((prev) => prev.map((n) => n.id === id ? { ...n, isDone: !currentStatus } : n));
+            loadNotes(); // Reload to move item out of view
         }
     };
 
@@ -44,17 +44,23 @@ export default function TeacherNotesPage() {
         <div className="animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">📨 Alle Nachrichten</h1>
-                    <p className="text-muted-foreground">Übersicht aller Nachrichten von Lehrkräften.</p>
+                    <h1 className="page-title">📨 Nachrichten</h1>
+                    <p className="text-muted-foreground">{view === "inbox" ? "Offene Nachrichten von Lehrkräften." : "Archivierte (erledigte) Nachrichten."}</p>
                 </div>
-                <div className="flex gap-2 items-center">
-                    <label className="text-sm">Zeitraum:</label>
-                    <select className="select" value={range} onChange={(e) => setRange(e.target.value)} style={{ width: "auto" }}>
-                        <option value="7">Letzte 7 Tage</option>
-                        <option value="30">Letzte 30 Tage</option>
-                        <option value="90">Letzte 3 Monate</option>
-                        <option value="365">Letztes Jahr</option>
-                    </select>
+                <div className="flex gap-4 items-center">
+                    <div className="tabs">
+                        <button className={`tab ${view === "inbox" ? "tab-active" : ""}`} onClick={() => setView("inbox")}>Posteingang</button>
+                        <button className={`tab ${view === "archive" ? "tab-active" : ""}`} onClick={() => setView("archive")}>Archiv</button>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                        <label className="text-sm">Zeitraum:</label>
+                        <select className="select" value={range} onChange={(e) => setRange(e.target.value)} style={{ width: "auto" }}>
+                            <option value="7">Letzte 7 Tage</option>
+                            <option value="30">Letzte 30 Tage</option>
+                            <option value="90">Letzte 3 Monate</option>
+                            <option value="365">Letztes Jahr</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

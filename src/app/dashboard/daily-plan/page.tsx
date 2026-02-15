@@ -128,6 +128,8 @@ function DailyPlanContent() {
     const [saving, setSaving] = useState(false);
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
     const [editConflictWarning, setEditConflictWarning] = useState<string | null>(null);
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ session: any } | null>(null);
+
     const [form, setForm] = useState({
         teacherId: "",
         subjectIds: [] as string[],
@@ -324,8 +326,24 @@ function DailyPlanContent() {
     };
 
     const handleDeleteSession = async (sessionId: string) => {
-        if (!confirm("Gruppe wirklich löschen?")) return;
-        await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
+        const session = sessions.find((s) => s.id === sessionId);
+        if (!session) return;
+
+        if (session.recurringGroupId) {
+            setDeleteConfirmation({ session });
+        } else {
+            if (!confirm("Gruppe wirklich löschen?")) return;
+            await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
+            loadSessions();
+        }
+    };
+
+    const handleConfirmDelete = async (mode: "single" | "future") => {
+        if (!deleteConfirmation) return;
+        const { session } = deleteConfirmation;
+
+        await fetch(`/api/sessions/${session.id}?deleteMode=${mode}`, { method: "DELETE" });
+        setDeleteConfirmation(null);
         loadSessions();
     };
 
@@ -343,7 +361,10 @@ function DailyPlanContent() {
         <div className="animate-fade-in">
             <div className="page-header">
                 <h1 className="page-title">📋 Tagesplan</h1>
-                <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Neue Gruppe</button>
+                <div className="flex gap-2">
+                    <button className="btn btn-outline" onClick={() => router.push("/dashboard/teacher-notes")}>📨 Nachrichten</button>
+                    <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Neue Gruppe</button>
+                </div>
             </div>
 
             {/* Site & Date selection */}
@@ -613,6 +634,27 @@ function DailyPlanContent() {
                             <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Abbrechen</button>
                             <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
                                 {saving ? "Speichere..." : "Änderungen speichern"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== DELETE CONFIRMATION MODAL ===== */}
+            {deleteConfirmation && (
+                <div className="modal-overlay" onClick={() => setDeleteConfirmation(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="modal-title">Serie löschen</h2>
+                        <p className="mb-4">Dies ist ein wiederkehrender Termin. Was möchten Sie löschen?</p>
+                        <div className="flex flex-col gap-2">
+                            <button className="btn btn-outline" onClick={() => handleConfirmDelete("single")}>
+                                Nur diesen Termin am {new Date(deleteConfirmation.session.date).toLocaleDateString("de-AT")}
+                            </button>
+                            <button className="btn btn-destructive" onClick={() => handleConfirmDelete("future")}>
+                                Diesen und alle ZUKÜNFTIGEN
+                            </button>
+                            <button className="btn btn-secondary mt-2" onClick={() => setDeleteConfirmation(null)}>
+                                Abbrechen
                             </button>
                         </div>
                     </div>
