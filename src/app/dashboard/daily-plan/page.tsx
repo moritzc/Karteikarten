@@ -1,7 +1,19 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+
+export default function DailyPlanPage() {
+    return (
+        <Suspense fallback={<div className="loading-center"><div className="spinner"></div></div>}>
+            <DailyPlanContent />
+        </Suspense>
+    );
+}
+
+
+// ... (keep constants and helper components the same)
+
 
 const TIME_SLOTS = [
     "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -89,7 +101,7 @@ function SubjectMultiSelect({ subjects, selectedIds, onToggle }: { subjects: any
     );
 }
 
-export default function DailyPlanPage() {
+function DailyPlanContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
