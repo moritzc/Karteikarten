@@ -145,12 +145,45 @@ export default function ManagerDashboard({ userId }: Props) {
 
     if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
 
+    const handleDeleteSession = async (sessionId: string, recurringGroupId?: string) => {
+        if (!confirm("Soll diese Gruppe gelöscht werden?")) return;
+
+        let url = `/api/sessions/${sessionId}`;
+        if (recurringGroupId && confirm("Sollen auch alle zukünftigen Termine dieser Serie gelöscht werden?")) {
+            url += "?deleteMode=future";
+        }
+
+        await fetch(url, { method: "DELETE" });
+        // Reload
+        const today = new Date().toISOString().slice(0, 10);
+        const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+        const [todayData, tomorrowData] = await Promise.all([
+            fetch(`/api/sessions?date=${today}`).then((r) => r.json()),
+            fetch(`/api/sessions?date=${tomorrowStr}`).then((r) => r.json()),
+        ]);
+        setTodaySessions(Array.isArray(todayData) ? todayData : []);
+        setTomorrowSessions(Array.isArray(tomorrowData) ? tomorrowData : []);
+        setShowEditModal(false);
+    };
+
+    const handleQuickClose = async (sessionId: string, completed: boolean) => {
+        await fetch(`/api/sessions/${sessionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ completed }),
+        });
+        // Optimistic update
+        setTodaySessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, completed } : s));
+        setTomorrowSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, completed } : s));
+    };
+
     const renderSessionCard = (s: any, showDate?: boolean) => (
         <div
             key={s.id}
             className={`card card-clickable ${s.completed ? "" : "urgency-low"}`}
-            onClick={() => openEditModal(s)}
-            style={{ overflow: "hidden" }}
+            onClick={() => router.push(`/dashboard/my-sessions/${s.id}`)}
+            style={{ overflow: "hidden", position: "relative" }}
         >
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -160,11 +193,28 @@ export default function ManagerDashboard({ userId }: Props) {
                     <span className={`badge ${s.completed ? "badge-success" : "badge-warning"}`}>
                         {s.completed ? "Abgeschlossen" : "Offen"}
                     </span>
+                    {s.recurring && <span className="badge badge-muted">🔁</span>}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))" }}>
-                    <span>{s.startTime} — {s.duration}min</span>
-                    {s.room && <span>🚪 {s.room.name}</span>}
+                <div className="flex items-center gap-1">
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => { e.stopPropagation(); openEditModal(s); }}
+                        title="Bearbeiten"
+                    >
+                        ✏️
+                    </button>
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => { e.stopPropagation(); handleQuickClose(s.id, !s.completed); }}
+                        title={s.completed ? "Wieder öffnen" : "Abschließen"}
+                    >
+                        {s.completed ? "↩️" : "✓"}
+                    </button>
                 </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap mb-2" style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))" }}>
+                <span>{s.startTime} — {s.duration}min</span>
+                {s.room && <span>🚪 {s.room.name}</span>}
             </div>
             <div className="text-sm text-muted-foreground mb-2">
                 Lehrkraft: <strong>{s.teacher?.name || "Nicht zugewiesen"}</strong>
@@ -358,6 +408,7 @@ export default function ManagerDashboard({ userId }: Props) {
                         <div className="modal-actions">
                             <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Abbrechen</button>
                             <button className="btn btn-outline" onClick={() => { setShowEditModal(false); router.push(`/dashboard/my-sessions/${editingSession.id}`); }}>📋 Detailansicht</button>
+                            <button className="btn btn-outline text-destructive" onClick={() => handleDeleteSession(editingSession.id, editingSession.recurringGroupId)}>Löschen</button>
                             <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
                                 {saving ? "Speichere..." : "Speichern"}
                             </button>

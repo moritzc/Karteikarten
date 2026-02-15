@@ -23,6 +23,8 @@ export default function SessionDetailPage() {
     const [examForm, setExamForm] = useState({ subjectId: "", date: "", description: "" });
     const [showGradeModal, setShowGradeModal] = useState(false);
     const [showExamModal, setShowExamModal] = useState(false);
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [noteContent, setNoteContent] = useState("");
     const [saving, setSaving] = useState(false);
     const [uploadingFor, setUploadingFor] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +88,22 @@ export default function SessionDetailPage() {
         loadData();
     };
 
+    const handleSendNote = async (studentId: string) => {
+        const res = await fetch("/api/teacher-notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studentId, content: noteContent }),
+        });
+        if (res.ok) {
+            setShowNoteModal(false);
+            setNoteContent("");
+            setActiveStudent(null);
+            alert("Notiz gesendet!");
+        } else {
+            alert("Fehler beim Senden.");
+        }
+    };
+
     const handleComplete = async () => {
         await fetch(`/api/sessions/${id}`, {
             method: "PUT",
@@ -143,6 +161,9 @@ export default function SessionDetailPage() {
                                     </button>
                                     <button className="btn btn-outline btn-sm" onClick={() => { setActiveStudent(student.id); setShowExamModal(true); }}>
                                         SA-Termin
+                                    </button>
+                                    <button className="btn btn-outline btn-sm" onClick={() => { setActiveStudent(student.id); setShowNoteModal(true); }}>
+                                        ✉️ Notiz
                                     </button>
                                     <button
                                         className="btn btn-primary btn-sm"
@@ -349,6 +370,29 @@ export default function SessionDetailPage() {
                         <div className="modal-actions">
                             <button className="btn btn-secondary" onClick={() => setShowExamModal(false)}>Abbrechen</button>
                             <button className="btn btn-primary" onClick={() => handleAddExam(activeStudent)} disabled={!examForm.subjectId || !examForm.date}>Speichern</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Note Modal */}
+            {showNoteModal && activeStudent && (
+                <div className="modal-overlay" onClick={() => setShowNoteModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="modal-title">Notiz an Standortleitung</h2>
+                        <div className="form-group mb-4">
+                            <label className="form-label">Nachricht</label>
+                            <textarea
+                                className="textarea"
+                                rows={4}
+                                value={noteContent}
+                                onChange={(e) => setNoteContent(e.target.value)}
+                                placeholder="Wichtige Info zum Schüler..."
+                            />
+                        </div>
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary" onClick={() => setShowNoteModal(false)}>Abbrechen</button>
+                            <button className="btn btn-primary" onClick={() => handleSendNote(activeStudent)} disabled={!noteContent}>Senden</button>
                         </div>
                     </div>
                 </div>

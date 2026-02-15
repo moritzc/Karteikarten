@@ -69,11 +69,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     const { error, session } = await getSessionOrFail();
     if (error) return error;
     const user = getUserFromSession(session);
     if (user.role === "TEACHER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { searchParams } = new URL(req.url);
+    const deleteMode = searchParams.get("deleteMode"); // "single" | "future"
+
+    if (deleteMode === "future") {
+        const currentSession = await prisma.session.findUnique({ where: { id: params.id } });
+
+        if (currentSession?.recurringGroupId) {
+            await prisma.session.deleteMany({
+                where: {
+                    recurringGroupId: currentSession.recurringGroupId,
+                    date: { gte: currentSession.date }, // This deletes THIS and COMING sessions
+                },
+            });
+            return NextResponse.json({ success: true, count: "Multiple" });
+        }
+    }
 
     await prisma.session.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });

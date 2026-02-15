@@ -235,7 +235,14 @@ function CalendarContent() {
                                     background: isToday(i) ? "hsl(var(--primary) / 0.1)" : "hsl(var(--secondary))",
                                     fontWeight: isToday(i) ? 700 : 600,
                                     fontSize: "0.8rem",
+                                    cursor: "pointer",
                                 }}
+                                onClick={() => {
+                                    const d = new Date(dayDate);
+                                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // Local time fix
+                                    router.push(`/dashboard/daily-plan?date=${d.toISOString().slice(0, 10)}${filterSite ? `&siteId=${filterSite}` : ""}`);
+                                }}
+                                title="Zum Tagesplan springen"
                             >
                                 <div>{label}</div>
                                 <div style={{ fontSize: "1rem", fontWeight: 700, color: isToday(i) ? "hsl(var(--primary))" : undefined }}>
