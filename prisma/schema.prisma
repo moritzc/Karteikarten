@@ -103,7 +103,6 @@ model Student {
   entries          Entry[]
   exams            Exam[]
   grades           Grade[]
-  grades           Grade[]
   reportCardGrades ReportCardGrade[]
   teacherNotes     TeacherNote[]
   files            File[]   @relation("StudentFiles")
