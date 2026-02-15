@@ -18,13 +18,31 @@ export default function TeacherDashboard({ userId }: Props) {
     const [students, setStudents] = useState<any[]>([]);
     const [sendingNote, setSendingNote] = useState(false);
 
+    const [nextSessions, setNextSessions] = useState<any[]>([]);
+    const [nextDayLabel, setNextDayLabel] = useState("");
+
     useEffect(() => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+
+        // Find next working day (skip weekends if needed, or just next day with sessions)
+        // Simple heuristic: check tomorrow, if empty check monday (if today is fri/sat)
+        // For now, let's just fetch tomorrow and maybe the day after if tomorrow is empty? 
+        // Better: Fetch a range (next 3 days) and filter locally for the first day with sessions.
+        // For simplicity requested: "next working day". Let's assume just tomorrow for now, 
+        // or a specific logic. Let's try to fetch tomorrow.
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
         Promise.all([
-            fetch(`/api/sessions?date=${today}&teacherId=${userId}`).then((r) => r.json()),
+            fetch(`/api/sessions?date=${todayStr}&teacherId=${userId}`).then((r) => r.json()),
+            fetch(`/api/sessions?date=${tomorrowStr}&teacherId=${userId}`).then((r) => r.json()),
             fetch("/api/students").then((r) => r.json())
-        ]).then(([sessionsData, studentsData]) => {
+        ]).then(([sessionsData, nextData, studentsData]) => {
             setSessions(Array.isArray(sessionsData) ? sessionsData : []);
+            setNextSessions(Array.isArray(nextData) ? nextData : []);
+            setNextDayLabel(tomorrow.toLocaleDateString("de-AT", { weekday: "long", day: "2-digit", month: "2-digit" }));
             setStudents(Array.isArray(studentsData) ? studentsData : []);
             setLoading(false);
         });
@@ -126,6 +144,36 @@ export default function TeacherDashboard({ userId }: Props) {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Next Working Day Preview */}
+            {nextSessions.length > 0 && (
+                <div className="mb-8">
+                    <h2 className="text-xl font-semibold mb-4 text-muted-foreground">📅 Vorschau: {nextDayLabel}</h2>
+                    <div className="grid grid-2 opacity-75 hover:opacity-100 transition-opacity">
+                        {nextSessions.map((s: any) => (
+                            <div
+                                key={s.id}
+                                className="card card-clickable"
+                                onClick={() => router.push(`/dashboard/my-sessions/${s.id}`)}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="badge badge-muted">Vorschau</span>
+                                        {s.subjects?.map((sub: any) => <span key={sub.id} className="badge badge-outline">{sub.name}</span>)}
+                                    </div>
+                                    <span className="text-sm">{s.startTime}</span>
+                                </div>
+                                <div className="text-sm mb-1">
+                                    <strong>{s.site?.name}</strong> {s.room && `| Raum: ${s.room.name}`}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    {s.students?.length} Schüler: {s.students?.map((st: any) => st.firstName).join(", ")}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

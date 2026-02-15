@@ -26,8 +26,15 @@ export async function GET(req: Request) {
 
         if (role === "TEACHER") {
             where.teacherId = (session.user as any).id;
-        } else if (siteId) {
-            where.siteId = siteId;
+        } else {
+            if (siteId) where.siteId = siteId;
+
+            const isDone = searchParams.get("isDone");
+            if (isDone === "true") where.isDone = true;
+            if (isDone === "false") where.isDone = false;
+
+            const fromDate = searchParams.get("from");
+            if (fromDate) where.createdAt = { gte: new Date(fromDate) };
         }
 
         const notes = await prisma.teacherNote.findMany({
@@ -58,10 +65,17 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { studentId, content, siteId } = await req.json();
+        const body = await req.json();
+        const { studentId, content } = body;
+        let { siteId } = body;
 
         if (!studentId || !content) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        }
+
+        if (!siteId) {
+            const student = await prisma.student.findUnique({ where: { id: studentId }, select: { siteId: true } });
+            if (student) siteId = student.siteId;
         }
 
         const note = await prisma.teacherNote.create({

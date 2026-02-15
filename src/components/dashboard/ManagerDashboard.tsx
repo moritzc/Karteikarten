@@ -321,6 +321,10 @@ export default function ManagerDashboard({ userId }: Props) {
                     <h3 className="card-title">📅 Kalender</h3>
                     <p className="card-description">Termine und Schularbeiten im Überblick.</p>
                 </div>
+                <div className="card card-clickable" onClick={() => router.push("/dashboard/teacher-notes")}>
+                    <h3 className="card-title">📨 Nachrichten-Archiv</h3>
+                    <p className="card-description">Alle Nachrichten der letzten 30+ Tage ansehen.</p>
+                </div>
             </div>
 
             {/* Edit Session Modal */}
