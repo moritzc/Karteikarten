@@ -41,6 +41,7 @@ model User {
   // As Teacher
   entries          Entry[]
   assignedSessions Session[] @relation("SessionTeacher")
+  createdNotes     TeacherNote[] @relation("CreatedTeacherNotes")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -59,6 +60,7 @@ model Site {
   students Student[]
   sessions Session[]
   rooms    Room[]
+  teacherNotes TeacherNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -101,7 +103,9 @@ model Student {
   entries          Entry[]
   exams            Exam[]
   grades           Grade[]
+  grades           Grade[]
   reportCardGrades ReportCardGrade[]
+  teacherNotes     TeacherNote[]
   files            File[]   @relation("StudentFiles")
 
   archived Boolean @default(false)
@@ -291,4 +295,22 @@ model Holiday {
   holidaySet   HolidaySet @relation(fields: [holidaySetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+model TeacherNote {
+  id        String   @id @default(uuid())
+  content   String
+  isDone    Boolean  @default(false)
+
+  teacherId String
+  teacher   User     @relation("CreatedTeacherNotes", fields: [teacherId], references: [id])
+
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  siteId    String?
+  site      Site?    @relation(fields: [siteId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

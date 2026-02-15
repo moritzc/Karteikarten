@@ -12,48 +12,81 @@ export default function TeacherDashboard({ userId }: Props) {
     const [sessions, setSessions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Note functionality
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [noteForm, setNoteForm] = useState({ studentId: "", content: "" });
+    const [students, setStudents] = useState<any[]>([]);
+    const [sendingNote, setSendingNote] = useState(false);
+
     useEffect(() => {
         const today = new Date().toISOString().slice(0, 10);
-        fetch(`/api/sessions?date=${today}&teacherId=${userId}`)
-            .then((r) => r.json())
-            .then((data) => {
-                setSessions(Array.isArray(data) ? data : []);
-                setLoading(false);
-            });
+        Promise.all([
+            fetch(`/api/sessions?date=${today}&teacherId=${userId}`).then((r) => r.json()),
+            fetch("/api/students").then((r) => r.json())
+        ]).then(([sessionsData, studentsData]) => {
+            setSessions(Array.isArray(sessionsData) ? sessionsData : []);
+            setStudents(Array.isArray(studentsData) ? studentsData : []);
+            setLoading(false);
+        });
     }, [userId]);
+
+    const handleSendNote = async () => {
+        if (!noteForm.studentId || !noteForm.content) return;
+        setSendingNote(true);
+        const res = await fetch("/api/teacher-notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(noteForm),
+        });
+        setSendingNote(false);
+        if (res.ok) {
+            setShowNoteModal(false);
+            setNoteForm({ studentId: "", content: "" });
+            alert("Notiz erfolgreich an die Standortleitung gesendet.");
+        } else {
+            alert("Fehler beim Senden der Notiz.");
+        }
+    };
 
     if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
 
     return (
         <div>
-            <div className="grid grid-3 mb-8">
-                <div className="stat-card">
-                    <div className="stat-value">{sessions.length}</div>
-                    <div className="stat-label">Heutige Gruppen</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-value">
-                        {sessions.reduce((acc: number, s: any) => acc + (s.students?.length || 0), 0)}
+            {/* Header Actions */}
+            <div className="flex justify-between items-center mb-6">
+                <div className="grid grid-3 gap-4 flex-1 mr-8">
+                    <div className="stat-card">
+                        <div className="stat-value">{sessions.length}</div>
+                        <div className="stat-label">Heutige Gruppen</div>
                     </div>
-                    <div className="stat-label">Schüler heute</div>
+                    <div className="stat-card">
+                        <div className="stat-value">
+                            {sessions.reduce((acc: number, s: any) => acc + (s.students?.length || 0), 0)}
+                        </div>
+                        <div className="stat-label">Schüler heute</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-value">{sessions.filter((s: any) => !s.completed).length}</div>
+                        <div className="stat-label">Ausstehend</div>
+                    </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-value">{sessions.filter((s: any) => !s.completed).length}</div>
-                    <div className="stat-label">Ausstehend</div>
-                </div>
+
+                <button className="btn btn-primary" onClick={() => setShowNoteModal(true)} style={{ height: "fit-content" }}>
+                    ✉️ Notiz an Leitung
+                </button>
             </div>
 
             <h2 className="text-xl font-semibold mb-4">📋 Meine heutigen Gruppen</h2>
 
             {sessions.length === 0 ? (
-                <div className="card">
+                <div className="card mb-8">
                     <div className="empty-state">
                         <div className="empty-state-icon">📭</div>
                         <p>Keine Gruppen für heute zugewiesen.</p>
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-2 mb-6">
+                <div className="grid grid-2 mb-8">
                     {sessions.map((s: any) => (
                         <div
                             key={s.id}
@@ -87,12 +120,6 @@ export default function TeacherDashboard({ userId }: Props) {
                                                     | Letztes Mal: {lastEntry.subject?.name} — {lastEntry.topic || "Kein Thema"}
                                                 </span>
                                             )}
-                                            {upcomingExams.length > 0 && (
-                                                <span className="badge badge-warning" style={{ marginLeft: "auto" }}>
-                                                    SA: {upcomingExams[0].subject?.name} am{" "}
-                                                    {new Date(upcomingExams[0].date).toLocaleDateString("de-AT")}
-                                                </span>
-                                            )}
                                         </div>
                                     );
                                 })}
@@ -102,7 +129,7 @@ export default function TeacherDashboard({ userId }: Props) {
                 </div>
             )}
 
-            <div className="grid grid-2">
+            <div className="grid grid-2 mb-8">
                 <div className="card card-clickable" onClick={() => router.push("/dashboard/entries")}>
                     <h3 className="card-title">✏️ Meine Einträge</h3>
                     <p className="card-description">Alle bisherigen Einträge ansehen und bearbeiten.</p>
@@ -113,11 +140,61 @@ export default function TeacherDashboard({ userId }: Props) {
                 </div>
             </div>
 
-            {/* Past Sessions */}
+            {/* Past Sessions Overview */}
             <div className="mt-8">
-                <h2 className="text-xl font-semibold mb-4">📜 Letzte gehaltene Einheiten</h2>
-                <PastSessions userId={userId} />
+                <h2 className="text-xl font-semibold mb-4">📜 Übersicht der gehaltenen Einheiten</h2>
+                <div className="card">
+                    <PastSessions userId={userId} />
+                </div>
             </div>
+
+            {/* Note Modal */}
+            {showNoteModal && (
+                <div className="modal-overlay" onClick={() => setShowNoteModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="modal-title">Notiz an Standortleitung</h2>
+                        <p className="mb-4 text-sm text-muted-foreground">
+                            Hier können Sie eine wichtige Information zu einem Schüler an die Standortleitung senden.
+                        </p>
+
+                        <div className="form-group mb-4">
+                            <label className="form-label">Schüler auswählen</label>
+                            <select
+                                className="select"
+                                value={noteForm.studentId}
+                                onChange={(e) => setNoteForm({ ...noteForm, studentId: e.target.value })}
+                            >
+                                <option value="">-- Bitte wählen --</option>
+                                {students.map(s => (
+                                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.sites?.map((site: any) => site.name).join(", ")})</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="form-group mb-4">
+                            <label className="form-label">Nachricht / Vorfall / Notiz</label>
+                            <textarea
+                                className="textarea"
+                                rows={4}
+                                value={noteForm.content}
+                                onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
+                                placeholder="Was soll die Standortleitung wissen/erledigen?"
+                            />
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary" onClick={() => setShowNoteModal(false)}>Abbrechen</button>
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleSendNote}
+                                disabled={!noteForm.studentId || !noteForm.content || sendingNote}
+                            >
+                                {sendingNote ? "Sende..." : "Absenden"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -128,7 +205,8 @@ function PastSessions({ userId }: { userId: string }) {
     const router = useRouter();
 
     useEffect(() => {
-        fetch(`/api/sessions?teacherId=${userId}&completed=true&limit=5&sort=desc`)
+        // limit=50 gives a better overview
+        fetch(`/api/sessions?teacherId=${userId}&completed=true&limit=50&sort=desc`)
             .then((r) => r.json())
             .then((data) => {
                 setSessions(Array.isArray(data) ? data : []);
@@ -137,19 +215,38 @@ function PastSessions({ userId }: { userId: string }) {
     }, [userId]);
 
     if (loading) return <div className="spinner"></div>;
-    if (sessions.length === 0) return <div className="text-muted-foreground">Keine vergangenen Einheiten gefunden.</div>;
+    if (sessions.length === 0) return <div className="text-muted-foreground p-4">Keine vergangenen Einheiten gefunden.</div>;
 
     return (
-        <div className="flex flex-col gap-2">
-            {sessions.map((s) => (
-                <div key={s.id} className="card card-hover card-clickable flex items-center justify-between p-3" onClick={() => router.push(`/dashboard/my-sessions/${s.id}`)}>
-                    <div>
-                        <div className="font-semibold">{new Date(s.date).toLocaleDateString("de-AT")} — {s.subjects?.map((sub: any) => sub.name).join(", ")}</div>
-                        <div className="text-sm text-muted-foreground">{s.site?.name} • {s.students?.length || 0} Schüler</div>
-                    </div>
-                    <span className="badge badge-success">Abgeschlossen</span>
-                </div>
-            ))}
+        <div className="table-container">
+            <table className="table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Uhrzeit</th>
+                        <th>Standort</th>
+                        <th>Fächer</th>
+                        <th>Schüler</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sessions.map((s) => (
+                        <tr key={s.id} className="hover:bg-muted/50">
+                            <td>{new Date(s.date).toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
+                            <td>{s.startTime} ({s.duration}min)</td>
+                            <td>{s.site?.name}</td>
+                            <td>{s.subjects?.map((sub: any) => sub.name).join(", ")}</td>
+                            <td>{s.students?.length}</td>
+                            <td>
+                                <button className="btn btn-sm btn-ghost" onClick={() => router.push(`/dashboard/my-sessions/${s.id}`)}>
+                                    Details →
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }

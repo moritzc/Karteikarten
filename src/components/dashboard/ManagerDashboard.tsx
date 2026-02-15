@@ -16,6 +16,7 @@ export default function ManagerDashboard({ userId }: Props) {
     const [subjects, setSubjects] = useState<any[]>([]);
     const [students, setStudents] = useState<any[]>([]);
     const [rooms, setRooms] = useState<any[]>([]);
+    const [notes, setNotes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Edit modal state
@@ -48,7 +49,8 @@ export default function ManagerDashboard({ userId }: Props) {
             fetch("/api/subjects").then((r) => r.json()),
             fetch("/api/students").then((r) => r.json()),
             fetch("/api/rooms").then((r) => r.json()),
-        ]).then(([sitesData, todayData, tomorrowData, teacherData, subjectData, studentData, roomData]) => {
+            fetch("/api/teacher-notes?isDone=false").then((r) => r.json()),
+        ]).then(([sitesData, todayData, tomorrowData, teacherData, subjectData, studentData, roomData, notesData]) => {
             setSites(Array.isArray(sitesData) ? sitesData : []);
             setTodaySessions(Array.isArray(todayData) ? todayData : []);
             setTomorrowSessions(Array.isArray(tomorrowData) ? tomorrowData : []);
@@ -56,9 +58,21 @@ export default function ManagerDashboard({ userId }: Props) {
             setSubjects(Array.isArray(subjectData) ? subjectData : []);
             setStudents(Array.isArray(studentData) ? studentData : []);
             setRooms(Array.isArray(roomData) ? roomData : []);
+            setNotes(Array.isArray(notesData) ? notesData : []);
             setLoading(false);
         });
     }, []);
+
+    const markNoteDone = async (id: string) => {
+        const res = await fetch(`/api/teacher-notes/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isDone: true }),
+        });
+        if (res.ok) {
+            setNotes((prev) => prev.filter((n) => n.id !== id));
+        }
+    };
 
     const openEditModal = (session: any) => {
         setEditingSession(session);
@@ -179,6 +193,34 @@ export default function ManagerDashboard({ userId }: Props) {
                     <div className="stat-label">Morgige Sitzungen</div>
                 </div>
             </div>
+
+            {/* Teacher Notes (Inbox) */}
+            <h2 className="text-xl font-semibold mb-4">📨 Nachrichten von Lehrkräften ({notes.length})</h2>
+            {notes.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-4 mb-8">
+                    {notes.map((n) => (
+                        <div key={n.id} className="card flex flex-col justify-between animate-fade-in" style={{ borderLeft: "4px solid hsl(var(--primary))" }}>
+                            <div className="mb-3">
+                                <div className="flex justify-between items-start">
+                                    <h3 className="font-semibold">{n.student?.firstName} {n.student?.lastName}</h3>
+                                    <span className="text-xs text-muted-foreground">{new Date(n.createdAt).toLocaleDateString("de-AT")}</span>
+                                </div>
+                                <div className="text-sm text-muted-foreground mb-2">von {n.teacher?.name}</div>
+                                <p className="text-sm bg-muted/30 p-2 rounded">{n.content}</p>
+                            </div>
+                            <button className="btn btn-sm btn-outline w-full" onClick={() => markNoteDone(n.id)}>
+                                ✅ Als erledigt markieren
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="card mb-8">
+                    <div className="text-muted-foreground text-sm flex items-center gap-2">
+                        <span>✅</span> Alle Nachrichten abgearbeitet.
+                    </div>
+                </div>
+            )}
 
             {/* Today's sessions */}
             <h2 className="text-xl font-semibold mb-4">📋 Heutige Gruppen</h2>
