@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const TIME_SLOTS = [
     "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -604,5 +605,6 @@ return (
                 </div>
             </div>
         )}
-        );
+    </div>
+);
 }
