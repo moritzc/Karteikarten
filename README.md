@@ -5,8 +5,6 @@ Die folgenden Tools müssen auf dem System installiert sein:
 - **Docker**
 - **Docker Compose**
 
-(Optional für lokale Entwicklung ohne Docker: Node.js 18+)
-
 ## Installation und Start
 
 
@@ -29,7 +27,7 @@ Die folgenden Tools müssen auf dem System installiert sein:
 - `prisma`: Datenbankschema (PostgreSQL)
 - `docker-compose.yml`: Definition der Services (App + DB)
 
-## Features (Geplant/In Entwicklung)
+## Features 
 - Authentifizierung (Admin, Standortleitung, Lehrer)
 - Dashboard für verschiedene Rollen
 - Schülerverwaltung und Noteneingabe
@@ -65,29 +63,3 @@ Beim ersten Start wird die Datenbank mit Testdaten befüllt (`prisma/seed.js`). 
 | **Standortleitung** | `manager@karteikarten.local` | `password123` |
 | **Lehrkraft** | `teacher@karteikarten.local` | `password123` |
 
-Bitte ändern Sie diese Passwörter nach dem ersten Login umgehend.
-
-## Wartung & Updates
-
-### NPM Pakete aktualisieren
-Um Sicherheitslücken zu schließen und Abhängigkeiten aktuell zu halten, führen Sie regelmäßig Updates durch:
-
-1. **Prüfen auf veraltete Pakete:**
-   ```bash
-   docker exec karteikarten-web-1 npm outdated
-   ```
-
-2. **Updates durchführen (Minor/Patch):**
-   ```bash
-   docker exec -u root karteikarten-web-1 npm update
-   ```
-
-3. **Sicherheits-Audits:**
-   ```bash
-   docker exec -u root karteikarten-web-1 npm audit fix
-   ```
-
-### Major Updates (z.B. Next.js Versionen)
-Für Major-Updates (z.B. Next.js 14 -> 15) müssen Sie ggf. die `package.json` manuell anpassen und den Container neu bauen (`docker-compose up -d --build`). Beachten Sie dabei Breaking Changes der Frameworks.
-
-Das Basis-Image wurde auf `node:20-bullseye-slim` aktualisiert, um moderne Framework-Versionen zu unterstützen.
