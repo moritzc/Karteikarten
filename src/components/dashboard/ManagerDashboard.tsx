@@ -20,6 +20,10 @@ export default function ManagerDashboard({ userId }: Props) {
     const [notes, setNotes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Modal data loading state
+    const [modalDataLoading, setModalDataLoading] = useState(false);
+    const [modalDataLoaded, setModalDataLoaded] = useState(false);
+
     // Edit modal state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingSession, setEditingSession] = useState<any>(null);
@@ -46,19 +50,11 @@ export default function ManagerDashboard({ userId }: Props) {
             fetch("/api/sites").then((r) => r.json()),
             fetch(`/api/sessions?date=${todayStr}`).then((r) => r.json()),
             fetch(`/api/sessions?date=${tomorrowStr}`).then((r) => r.json()),
-            fetch("/api/users?role=TEACHER").then((r) => r.json()),
-            fetch("/api/subjects").then((r) => r.json()),
-            fetch("/api/students").then((r) => r.json()),
-            fetch("/api/rooms").then((r) => r.json()),
             fetch("/api/teacher-notes?isDone=false").then((r) => r.json()),
-        ]).then(([sitesData, todayData, tomorrowData, teacherData, subjectData, studentData, roomData, notesData]) => {
+        ]).then(([sitesData, todayData, tomorrowData, notesData]) => {
             setSites(Array.isArray(sitesData) ? sitesData : []);
             setTodaySessions(Array.isArray(todayData) ? todayData : []);
             setTomorrowSessions(Array.isArray(tomorrowData) ? tomorrowData : []);
-            setTeachers(Array.isArray(teacherData) ? teacherData : []);
-            setSubjects(Array.isArray(subjectData) ? subjectData : []);
-            setStudents(Array.isArray(studentData) ? studentData : []);
-            setRooms(Array.isArray(roomData) ? roomData : []);
             setNotes(Array.isArray(notesData) ? notesData : []);
             setLoading(false);
         });
@@ -75,7 +71,7 @@ export default function ManagerDashboard({ userId }: Props) {
         }
     };
 
-    const openEditModal = (session: any) => {
+    const openEditModal = async (session: any) => {
         setEditingSession(session);
         setEditForm({
             date: session.date ? new Date(session.date).toISOString().slice(0, 10) : "",
@@ -88,6 +84,27 @@ export default function ManagerDashboard({ userId }: Props) {
             roomId: session.roomId || "",
         });
         setShowEditModal(true);
+
+        if (!modalDataLoaded) {
+            setModalDataLoading(true);
+            try {
+                const [teacherData, subjectData, studentData, roomData] = await Promise.all([
+                    fetch("/api/users?role=TEACHER").then((r) => r.json()),
+                    fetch("/api/subjects").then((r) => r.json()),
+                    fetch("/api/students").then((r) => r.json()),
+                    fetch("/api/rooms").then((r) => r.json()),
+                ]);
+                setTeachers(Array.isArray(teacherData) ? teacherData : []);
+                setSubjects(Array.isArray(subjectData) ? subjectData : []);
+                setStudents(Array.isArray(studentData) ? studentData : []);
+                setRooms(Array.isArray(roomData) ? roomData : []);
+                setModalDataLoaded(true);
+            } catch (error) {
+                console.error("Failed to load modal data:", error);
+            } finally {
+                setModalDataLoading(false);
+            }
+        }
     };
 
     const handleSaveEdit = async () => {
@@ -334,90 +351,98 @@ export default function ManagerDashboard({ userId }: Props) {
                     <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
                         <h2 className="modal-title">Gruppe bearbeiten</h2>
 
-                        <div className="form-group mb-4">
-                            <label className="form-label">📅 Datum</label>
-                            <input className="input" type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
-                        </div>
-
-                        <div className="form-row mb-4">
-                            <div className="form-group">
-                                <label className="form-label">🕐 Startzeit</label>
-                                <select className="select" value={editForm.startTime} onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}>
-                                    {Array.from({ length: 24 }, (_, i) => [`${i.toString().padStart(2, "0")}:00`, `${i.toString().padStart(2, "0")}:15`, `${i.toString().padStart(2, "0")}:30`, `${i.toString().padStart(2, "0")}:45`]).flat().map((t) => (
-                                        <option key={t} value={t}>{t}</option>
-                                    ))}
-                                </select>
+                        {modalDataLoading ? (
+                            <div className="flex justify-center items-center p-12">
+                                <div className="spinner"></div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">⏱️ Dauer</label>
-                                <div className="flex gap-2 flex-wrap">
-                                    {[45, 60, 90, 120].map((d) => (
-                                        <button key={d} className={`btn btn-sm ${editForm.duration === d ? "btn-primary" : "btn-outline"}`} onClick={() => setEditForm({ ...editForm, duration: d })}>{d} Min.</button>
-                                    ))}
+                        ) : (
+                            <>
+                                <div className="form-group mb-4">
+                                    <label className="form-label">📅 Datum</label>
+                                    <input className="input" type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="form-row mb-4">
-                            <div className="form-group">
-                                <label className="form-label">👨‍🏫 Lehrkraft</label>
-                                <select className="select" value={editForm.teacherId} onChange={(e) => setEditForm({ ...editForm, teacherId: e.target.value })}>
-                                    <option value="">Nicht zugewiesen</option>
-                                    {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">🚪 Raum</label>
-                                <select className="select" value={editForm.roomId} onChange={(e) => setEditForm({ ...editForm, roomId: e.target.value })}>
-                                    <option value="">Kein Raum</option>
-                                    {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
+                                <div className="form-row mb-4">
+                                    <div className="form-group">
+                                        <label className="form-label">🕐 Startzeit</label>
+                                        <select className="select" value={editForm.startTime} onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}>
+                                            {Array.from({ length: 24 }, (_, i) => [`${i.toString().padStart(2, "0")}:00`, `${i.toString().padStart(2, "0")}:15`, `${i.toString().padStart(2, "0")}:30`, `${i.toString().padStart(2, "0")}:45`]).flat().map((t) => (
+                                                <option key={t} value={t}>{t}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">⏱️ Dauer</label>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {[45, 60, 90, 120].map((d) => (
+                                                <button key={d} className={`btn btn-sm ${editForm.duration === d ? "btn-primary" : "btn-outline"}`} onClick={() => setEditForm({ ...editForm, duration: d })}>{d} Min.</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div className="form-group mb-4">
-                            <label className="form-label">📚 Fächer</label>
-                            <div className="flex flex-wrap gap-2">
-                                {subjects.map((sub) => (
-                                    <button
-                                        key={sub.id}
-                                        className={`chip ${editForm.subjectIds.includes(sub.id) ? "chip-active" : ""}`}
-                                        onClick={() => toggleEditSubject(sub.id)}
-                                    >
-                                        {sub.name}
+                                <div className="form-row mb-4">
+                                    <div className="form-group">
+                                        <label className="form-label">👨‍🏫 Lehrkraft</label>
+                                        <select className="select" value={editForm.teacherId} onChange={(e) => setEditForm({ ...editForm, teacherId: e.target.value })}>
+                                            <option value="">Nicht zugewiesen</option>
+                                            {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">🚪 Raum</label>
+                                        <select className="select" value={editForm.roomId} onChange={(e) => setEditForm({ ...editForm, roomId: e.target.value })}>
+                                            <option value="">Kein Raum</option>
+                                            {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="form-group mb-4">
+                                    <label className="form-label">📚 Fächer</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {subjects.map((sub) => (
+                                            <button
+                                                key={sub.id}
+                                                className={`chip ${editForm.subjectIds.includes(sub.id) ? "chip-active" : ""}`}
+                                                onClick={() => toggleEditSubject(sub.id)}
+                                            >
+                                                {sub.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="form-group mb-4">
+                                    <label className="form-label">🎓 Schüler ({editForm.studentIds.length} ausgewählt)</label>
+                                    <div className="flex flex-wrap gap-2" style={{ maxHeight: "150px", overflowY: "auto" }}>
+                                        {students.map((st) => (
+                                            <button
+                                                key={st.id}
+                                                className={`chip ${editForm.studentIds.includes(st.id) ? "chip-active" : ""}`}
+                                                onClick={() => toggleEditStudent(st.id)}
+                                            >
+                                                {st.firstName} {st.lastName}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="form-group mb-4">
+                                    <label className="form-label">📌 Anmerkung</label>
+                                    <textarea className="textarea" value={editForm.managerNote} onChange={(e) => setEditForm({ ...editForm, managerNote: e.target.value })} />
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Abbrechen</button>
+                                    <button className="btn btn-outline" onClick={() => { setShowEditModal(false); router.push(`/dashboard/my-sessions/${editingSession.id}`); }}>📋 Detailansicht</button>
+                                    <button className="btn btn-outline text-destructive" onClick={() => handleDeleteSession(editingSession.id, editingSession.recurringGroupId)}>Löschen</button>
+                                    <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
+                                        {saving ? "Speichere..." : "Speichern"}
                                     </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="form-group mb-4">
-                            <label className="form-label">🎓 Schüler ({editForm.studentIds.length} ausgewählt)</label>
-                            <div className="flex flex-wrap gap-2" style={{ maxHeight: "150px", overflowY: "auto" }}>
-                                {students.map((st) => (
-                                    <button
-                                        key={st.id}
-                                        className={`chip ${editForm.studentIds.includes(st.id) ? "chip-active" : ""}`}
-                                        onClick={() => toggleEditStudent(st.id)}
-                                    >
-                                        {st.firstName} {st.lastName}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="form-group mb-4">
-                            <label className="form-label">📌 Anmerkung</label>
-                            <textarea className="textarea" value={editForm.managerNote} onChange={(e) => setEditForm({ ...editForm, managerNote: e.target.value })} />
-                        </div>
-
-                        <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Abbrechen</button>
-                            <button className="btn btn-outline" onClick={() => { setShowEditModal(false); router.push(`/dashboard/my-sessions/${editingSession.id}`); }}>📋 Detailansicht</button>
-                            <button className="btn btn-outline text-destructive" onClick={() => handleDeleteSession(editingSession.id, editingSession.recurringGroupId)}>Löschen</button>
-                            <button className="btn btn-primary" onClick={handleSaveEdit} disabled={saving}>
-                                {saving ? "Speichere..." : "Speichern"}
-                            </button>
-                        </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
