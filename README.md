@@ -13,7 +13,7 @@ Die folgenden Tools müssen auf dem System installiert sein:
    docker-compose up --build
    ```
 
-   **Wichtig:** Nach dem ersten Start (oder wenn Sie die Datenbank zurücksetzen möchten) müssen Sie die Standard-Daten manuell einspielen (Seeding):
+   **Wichtig:** Nach dem ersten Start (oder wenn Sie die Datenbank zurücksetzen möchten) muss die Datenbank manuell eingespielt werden:
    ```bash
    docker exec karteikarten-web-1 npx prisma db seed
    ```
@@ -21,11 +21,63 @@ Die folgenden Tools müssen auf dem System installiert sein:
 2. Öffnen Sie die Anwendung im Browser:
    http://localhost:3000
 
-## Projektstruktur
-- `src/app`: Next.js App Router Pages und Layouts
-- `src/lib`: Hilfsfunktionen (z.B. Datenbankverbindung)
-- `prisma`: Datenbankschema (PostgreSQL)
-- `docker-compose.yml`: Definition der Services (App + DB)
+## Installation via Dockerhub Image
+1. docker-compose.yml Erstellen
+   ```bash
+	services:
+	  web:
+		image: moritzch/karteikarten:latest
+		ports:
+		  - "3000:3000"
+		environment:
+		  # Constructs the DB URL dynamically using the individual Postgres variables
+		  DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+		  NEXTAUTH_URL: "${NEXTAUTH_URL}"
+		  NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+		depends_on:
+		  - db
+		restart: always
+		volumes:
+		  - uploads:/app/public/uploads
+
+	  db:
+		image: postgres:15-alpine
+		restart: always
+		environment:
+		  POSTGRES_USER: "${POSTGRES_USER}"
+		  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+		  POSTGRES_DB: "${POSTGRES_DB}"
+		volumes:
+		  - pgdata:/var/lib/postgresql/data
+
+	volumes:
+	  pgdata:
+	  uploads:
+   ```
+2. .env Datei erstellen
+   ```bash
+	# -----------------------------
+	# Datenbankkonfiguration
+	# -----------------------------
+	POSTGRES_USER=postgres
+	POSTGRES_PASSWORD=change_this_to_a_secure_password
+	POSTGRES_DB=karteikarten
+
+	# -----------------------------
+	# NextAuth Konfiguration
+	# -----------------------------
+	# FQDN oder IP:PORT eintragen
+	NEXTAUTH_URL=http://localhost:3000
+
+	# Ein Zufallsschlüssel kann mittels folgendem Befehl erstellt werden: openssl rand -base64 32
+	NEXTAUTH_SECRET=your_super_secret_generated_string_here
+   ```
+
+3. docker compose up
+4.  **Wichtig:** Nach dem ersten Start (oder wenn Sie die Datenbank zurücksetzen möchten) muss die Datenbank manuell eingespielt werden:
+   ```bash
+   docker exec karteikarten-web-1 npx prisma db seed
+   ```
 
 ## Features 
 - Authentifizierung (Admin, Standortleitung, Lehrer)
@@ -34,25 +86,9 @@ Die folgenden Tools müssen auf dem System installiert sein:
 - Datei-Uploads und Export
 - Archivierungsfunktion für Schüler
 
-## Sicherheit & Konfiguration
-
-### Environment Variables (.env)
-Das Projekt benötigt eine `.env` Datei im Hauptverzeichnis. Eine Vorlage (`.env.example`) sollte folgende Variablen enthalten:
-
-```env
-# Datenbank-Verbindung (genutzt von Prisma)
-DATABASE_URL="postgresql://postgres:postgres@db:5432/karteikarten?schema=public"
-
-# NextAuth Konfiguration
-# Generieren Sie ein sicheres Secret mit: openssl rand -base64 32
-NEXTAUTH_SECRET="change-me-to-a-secure-random-string"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Datenbank-Passwort (für den PostgreSQL Container)
-POSTGRES_PASSWORD=postgres
-```
-
-**WICHTIG:** Ändern Sie `NEXTAUTH_SECRET` und `POSTGRES_PASSWORD` in einer Produktionsumgebung unbedingt auf sichere Werte!
+## Todo
+   - Manuellen Datenbank-Seed ablösen
+   - Verbesserungen UI, Sicherheit, Bugs
 
 ### Standard-Logins (Initial Seed)
 Beim ersten Start wird die Datenbank mit Testdaten befüllt (`prisma/seed.js`). Folgende Benutzer werden angelegt:
