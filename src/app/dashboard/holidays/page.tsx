@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { formatDate } from "@/lib/helpers";
 
 export default function HolidaysPage() {
     const { data: session } = useSession();
@@ -87,8 +88,6 @@ export default function HolidaysPage() {
         setHolidayForm({ name: "", startDate: "", endDate: "", schoolYear: "2025/26" });
         setShowHolidayModal(true);
     };
-
-    const formatDate = (d: string) => new Date(d).toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
 
     if (role === "TEACHER") return <div className="card"><p>Kein Zugriff.</p></div>;
     if (loading) return <div className="loading-center"><div className="spinner"></div></div>;

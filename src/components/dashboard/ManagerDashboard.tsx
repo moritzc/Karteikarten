@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/helpers";
 
 interface Props {
     userId: string;
@@ -140,7 +141,7 @@ export default function ManagerDashboard({ userId }: Props) {
     const formatTomorrow = () => {
         const d = new Date();
         d.setDate(d.getDate() + 1);
-        return d.toLocaleDateString("de-AT", { weekday: "long", day: "2-digit", month: "long" });
+        return formatDate(d, { weekday: "long", day: "2-digit", month: "long" });
     };
 
     if (loading) return <div className="loading-center"><div className="spinner"></div></div>;
@@ -253,7 +254,7 @@ export default function ManagerDashboard({ userId }: Props) {
                             <div className="mb-3">
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-semibold">{n.student?.firstName} {n.student?.lastName}</h3>
-                                    <span className="text-xs text-muted-foreground">{new Date(n.createdAt).toLocaleDateString("de-AT")}</span>
+                                    <span className="text-xs text-muted-foreground">{formatDate(n.createdAt)}</span>
                                 </div>
                                 <div className="text-sm text-muted-foreground mb-2">von {n.teacher?.name}</div>
                                 <p className="text-sm bg-muted/30 p-2 rounded">{n.content}</p>

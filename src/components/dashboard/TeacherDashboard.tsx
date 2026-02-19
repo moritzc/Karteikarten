@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/helpers";
 
 interface Props {
     userId: string;
@@ -42,7 +43,7 @@ export default function TeacherDashboard({ userId }: Props) {
         ]).then(([sessionsData, nextData, studentsData]) => {
             setSessions(Array.isArray(sessionsData) ? sessionsData : []);
             setNextSessions(Array.isArray(nextData) ? nextData : []);
-            setNextDayLabel(tomorrow.toLocaleDateString("de-AT", { weekday: "long", day: "2-digit", month: "2-digit" }));
+            setNextDayLabel(formatDate(tomorrow, { weekday: "long", day: "2-digit", month: "2-digit" }));
             setStudents(Array.isArray(studentsData) ? studentsData : []);
             setLoading(false);
         });
@@ -281,7 +282,7 @@ function PastSessions({ userId }: { userId: string }) {
                 <tbody>
                     {sessions.map((s) => (
                         <tr key={s.id} className="hover:bg-muted/50">
-                            <td>{new Date(s.date).toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
+                            <td>{formatDate(s.date, { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
                             <td>{s.startTime} ({s.duration}min)</td>
                             <td>{s.site?.name}</td>
                             <td>{s.subjects?.map((sub: any) => sub.name).join(", ")}</td>
