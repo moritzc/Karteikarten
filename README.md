@@ -23,38 +23,38 @@ Die folgenden Tools müssen auf dem System installiert sein:
 
 ## Installation via Dockerhub Image
 1. docker-compose.yml Erstellen
-   ```bash
-	services:
-	  web:
-		image: moritzch/karteikarten:latest
-		ports:
-		  - "3000:3000"
-		environment:
-		  # Constructs the DB URL dynamically using the individual Postgres variables
-		  DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-		  NEXTAUTH_URL: "${NEXTAUTH_URL}"
-		  NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
-		depends_on:
-		  - db
-		restart: always
-		volumes:
-		  - uploads:/app/public/uploads
+```bash
+services:
+  web:
+    image: moritzch/karteikarten:latest
+    ports:
+      - "3000:3000"
+    environment:
+      # Constructs the DB URL dynamically using the individual Postgres variables
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      NEXTAUTH_URL: "${NEXTAUTH_URL}"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+    depends_on:
+      - db
+    restart: always
+    volumes:
+      - uploads:/app/public/uploads
 
-	  db:
-		image: postgres:15-alpine
-		restart: always
-		environment:
-		  POSTGRES_USER: "${POSTGRES_USER}"
-		  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-		  POSTGRES_DB: "${POSTGRES_DB}"
-		volumes:
-		  - pgdata:/var/lib/postgresql/data
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
-	volumes:
-	  pgdata:
-	  uploads:
-   ```
-2. .env Datei erstellen
+volumes:
+  pgdata:
+  uploads:
+```
+3. .env Datei erstellen
    ```bash
 	# -----------------------------
 	# Datenbankkonfiguration
@@ -73,8 +73,8 @@ Die folgenden Tools müssen auf dem System installiert sein:
 	NEXTAUTH_SECRET=your_super_secret_generated_string_here
    ```
 
-3. docker compose up
-4.  **Wichtig:** Nach dem ersten Start (oder wenn Sie die Datenbank zurücksetzen möchten) muss die Datenbank manuell eingespielt werden:
+4. docker compose up
+5.  **Wichtig:** Nach dem ersten Start (oder wenn Sie die Datenbank zurücksetzen möchten) muss die Datenbank manuell eingespielt werden:
    ```bash
    docker exec karteikarten-web-1 npx prisma db seed
    ```
