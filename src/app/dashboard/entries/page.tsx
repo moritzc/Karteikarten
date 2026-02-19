@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { formatDate } from "@/lib/helpers";
 
 export default function EntriesPage() {
     const { data: session } = useSession();
@@ -124,7 +125,7 @@ export default function EntriesPage() {
                                         <span className="font-semibold">{entry.student?.firstName} {entry.student?.lastName}</span>
                                         {entry.subject && <span className="badge badge-primary">{entry.subject.name}</span>}
                                         <span className="text-xs text-muted-foreground">
-                                            {new Date(entry.lessonDate).toLocaleDateString("de-AT")}
+                                            {formatDate(entry.lessonDate)}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-1">

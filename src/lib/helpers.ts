@@ -19,12 +19,12 @@ export function getUserFromSession(session: any) {
     };
 }
 
-export function formatDate(date: Date | string) {
-    return new Date(date).toLocaleDateString("de-AT", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-    });
+export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+}) {
+    return new Date(date).toLocaleDateString("de-AT", options);
 }
 
 export function startOfDay(date: Date) {

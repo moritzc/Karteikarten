@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/helpers";
 
 export default function MySessionsPage() {
     const router = useRouter();
@@ -29,7 +30,6 @@ export default function MySessionsPage() {
 
     const goToday = () => setCurrentDate(new Date());
 
-    const formatDate = (d: Date) => d.toLocaleDateString("de-AT", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
     const isToday = currentDate.toDateString() === new Date().toDateString();
 
     // Quick day buttons for the current week
@@ -53,7 +53,7 @@ export default function MySessionsPage() {
                 <div className="flex items-center justify-between mb-4">
                     <button className="btn btn-ghost" onClick={() => goDay(-1)}>← Vorheriger Tag</button>
                     <div className="text-center">
-                        <h2 className="text-lg font-semibold">{formatDate(currentDate)}</h2>
+                        <h2 className="text-lg font-semibold">{formatDate(currentDate, { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</h2>
                         <span className="badge badge-primary">{sessions.length} Gruppen</span>
                     </div>
                     <button className="btn btn-ghost" onClick={() => goDay(1)}>Nächster Tag →</button>
@@ -71,7 +71,7 @@ export default function MySessionsPage() {
                                 style={{ minWidth: "70px", padding: "0.25rem 0.5rem" }}
                                 onClick={() => setCurrentDate(new Date(d))}
                             >
-                                <div style={{ fontSize: "0.7rem" }}>{d.toLocaleDateString("de-AT", { weekday: "short" })}</div>
+                                <div style={{ fontSize: "0.7rem" }}>{formatDate(d, { weekday: "short" })}</div>
                                 <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>{d.getDate()}</div>
                             </button>
                         );
@@ -142,7 +142,7 @@ export default function MySessionsPage() {
                                             {upcomingExams.length > 0 && (
                                                 <span className="badge badge-warning" style={{ marginLeft: "auto" }}>
                                                     SA: {upcomingExams[0].subject?.name}{" "}
-                                                    {new Date(upcomingExams[0].date).toLocaleDateString("de-AT")}
+                                                    {formatDate(upcomingExams[0].date)}
                                                 </span>
                                             )}
                                         </div>
