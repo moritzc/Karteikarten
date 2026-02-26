@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const createdSessions = [];
+        const sessionPromises = [];
         const skippedDates: { date: string; reason: string }[] = [];
 
         for (let w = 0; w < maxWeeks; w++) {
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
                 continue; // Skip this week
             }
 
-            const newSession = await prisma.session.create({
+            sessionPromises.push(prisma.session.create({
                 data: {
                     ...baseData,
                     date: sessionDate,
@@ -182,9 +182,9 @@ export async function POST(req: NextRequest) {
                     room: true,
                     students: true,
                 },
-            });
-            createdSessions.push(newSession);
+            }));
         }
+        const createdSessions = await prisma.$transaction(sessionPromises);
         return NextResponse.json({ sessions: createdSessions, skippedDates }, { status: 201 });
     } else {
         // Single session
