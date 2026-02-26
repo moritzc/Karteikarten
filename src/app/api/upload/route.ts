@@ -4,6 +4,19 @@ import { getSessionOrFail } from "@/lib/helpers";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
 // POST /api/upload — upload file and link to entry or student
 export async function POST(req: NextRequest) {
     const { error } = await getSessionOrFail();
@@ -17,6 +30,16 @@ export async function POST(req: NextRequest) {
 
         if (!file) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
+        }
+
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+            return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+        }
+
+        // Validate file type
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+            return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
         }
 
         const bytes = await file.arrayBuffer();
