@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrFail, getUserFromSession } from "@/lib/helpers";
 import bcrypt from "bcryptjs";
+import { createAuditLog } from "@/lib/audit";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
     const { error } = await getSessionOrFail();
@@ -41,6 +42,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         data,
         select: { id: true, name: true, email: true, role: true, teacherNote: true, teachableSubjects: { select: { id: true, name: true } }, sites: { select: { id: true, name: true } } },
     });
+
+    // Audit Log
+    await createAuditLog({
+        action: "USER_UPDATED",
+        details: JSON.stringify({ updatedFields: Object.keys(data), userId: user.id }),
+        userId: currentUser.id,
+        resourceId: user.id
+    });
+
     return NextResponse.json(user);
 }
 
@@ -50,6 +60,22 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     const user = getUserFromSession(session);
     if (user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    // Get user details before deletion for log
+    const targetUser = await prisma.user.findUnique({ where: { id: params.id } });
+
+    if (!targetUser) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     await prisma.user.delete({ where: { id: params.id } });
+
+    // Audit Log
+    await createAuditLog({
+        action: "USER_DELETED",
+        details: JSON.stringify({ name: targetUser.name, email: targetUser.email }),
+        userId: user.id,
+        resourceId: params.id
+    });
+
     return NextResponse.json({ success: true });
 }
