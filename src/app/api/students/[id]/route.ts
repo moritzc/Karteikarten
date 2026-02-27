@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrFail, getUserFromSession } from "@/lib/helpers";
+import { createAuditLog } from "@/lib/audit";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
     const { error } = await getSessionOrFail();
@@ -70,6 +71,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             contacts: true,
         },
     });
+
+    // Audit Log
+    await createAuditLog({
+        action: "STUDENT_UPDATED",
+        details: JSON.stringify({ updatedFields: Object.keys(data), studentId: student.id }),
+        userId: user.id,
+        resourceId: student.id
+    });
+
     return NextResponse.json(student);
 }
 
@@ -79,6 +89,21 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     const user = getUserFromSession(session);
     if (user.role === "TEACHER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    // Get student details before deletion
+    const student = await prisma.student.findUnique({ where: { id: params.id } });
+    if (!student) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     await prisma.student.delete({ where: { id: params.id } });
+
+    // Audit Log
+    await createAuditLog({
+        action: "STUDENT_DELETED",
+        details: JSON.stringify({ firstName: student.firstName, lastName: student.lastName, id: params.id }),
+        userId: user.id,
+        resourceId: params.id
+    });
+
     return NextResponse.json({ success: true });
 }

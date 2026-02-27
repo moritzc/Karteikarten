@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrFail, getUserFromSession } from "@/lib/helpers";
+import { createAuditLog } from "@/lib/audit";
 
 // GET /api/export/student?studentId=xxx&anonymizeTeachers=true
 export async function GET(req: NextRequest) {
@@ -113,6 +114,14 @@ export async function GET(req: NextRequest) {
     };
 
     const fileName = `export-${student.firstName}-${student.lastName}-${new Date().toISOString().slice(0, 10)}.json`;
+
+    // Audit Log
+    await createAuditLog({
+        action: "DATA_EXPORT",
+        details: JSON.stringify({ studentId: student.id, anonymizeTeachers }),
+        userId: user.id,
+        resourceId: student.id
+    });
 
     return new NextResponse(JSON.stringify(exportData, null, 2), {
         headers: {

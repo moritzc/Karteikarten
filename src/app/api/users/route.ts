@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrFail, getUserFromSession } from "@/lib/helpers";
 import bcrypt from "bcryptjs";
+import { createAuditLog } from "@/lib/audit";
 
 // GET /api/users — list users (filtered by role permissions)
 export async function GET(req: NextRequest) {
@@ -67,6 +68,14 @@ export async function POST(req: NextRequest) {
             teachableSubjects: body.subjectIds?.length ? { connect: body.subjectIds.map((id: string) => ({ id })) } : undefined,
         },
         select: { id: true, name: true, email: true, role: true, teacherNote: true, teachableSubjects: { select: { id: true, name: true } }, sites: { select: { id: true, name: true } } },
+    });
+
+    // Audit Log
+    await createAuditLog({
+        action: "USER_CREATED",
+        details: JSON.stringify({ name: newUser.name, email: newUser.email, role: newUser.role }),
+        userId: user.id,
+        resourceId: newUser.id
     });
 
     return NextResponse.json(newUser, { status: 201 });

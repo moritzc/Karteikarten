@@ -313,3 +313,12 @@ model TeacherNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String   // e.g. "USER_CREATED", "FILE_ACCESSED"
+  details    String?  // JSON or text details
+  userId     String?  // Who performed the action (nullable for system actions or unauthenticated)
+  resourceId String?  // ID of the affected resource (User ID, Student ID, File ID)
+  createdAt  DateTime @default(now())
+}
